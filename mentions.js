@@ -75,6 +75,7 @@ RedactorPlugins = (function (plugins, utils) {
             this.$userSelect = $('<ol class="redactor_ user_select"></ol>');
             this.$userSelect.mousemove($.proxy(this.selectMousemove, this));
             this.$userSelect.mousedown($.proxy(this.selectMousedown, this));
+            this.$userSelect.hide();
             this.$editor.after(this.$userSelect);
         },
 
