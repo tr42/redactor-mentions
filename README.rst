@@ -14,7 +14,8 @@ Getting Started
     $('.post').redactor({
         plugins: ['mentions'],
         usersUrl: "users.json", // user data for mentions plugin
-        maxUsers: 5 // maximum users to show in user select dialog
+        maxUsers: 5, // maximum users to show in user select dialog
+        userUrlPrefix: "/user/" // optional url prefix for user
     });
 
 The users JSON data should look like::

@@ -273,7 +273,8 @@ $.extend plugins, do ->
         chooseUser: ->
             user = this.userFromSelected()
             mention = this.getCurrentMention()
-            mention.attr "href", "/user/#{ user.username }"
+            prefix = this.opts.userUrlPrefix or '/user/'
+            mention.attr "href", prefix + user.username
             mention.text "@#{ user.username }"
 
         userFromSelected: ->

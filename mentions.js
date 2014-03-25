@@ -242,10 +242,11 @@
           return $elements.eq(this.selected).addClass('selected');
         },
         chooseUser: function() {
-          var mention, user;
+          var mention, prefix, user;
           user = this.userFromSelected();
           mention = this.getCurrentMention();
-          mention.attr("href", "/user/" + user.username);
+          prefix = this.opts.userUrlPrefix || '/user/';
+          mention.attr("href", prefix + user.username);
           return mention.text("@" + user.username);
         },
         userFromSelected: function() {
