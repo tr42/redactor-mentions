@@ -5,6 +5,28 @@ root = exports ? this
 $ = root.jQuery
 utils = root.RedactorUtils = root.RedactorUtils ? {}
 plugins = root.RedactorPlugins = root.RedactorPlugins ? {}
+users = null
+_users_loaded = false
+
+load_users = (url) ->
+    # only run once
+    return if _users_loaded
+    _users_loaded = true
+
+    # async call to get user data
+    $.getJSON url, (data) ->
+        users = data
+
+        for user, i in data
+            # create actual dom node for userSelect
+            user.$element = $ """
+                <li class="user">
+                    <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })
+                </li>"""
+
+            # put a pointer pointer back to user object
+            # TODO: perhaps just make this a normal reference
+            user.$element.data 'index', i
 
 # extend utils with stuff that isn't concerned with redactor instance
 $.extend utils, do ->
@@ -98,13 +120,12 @@ $.extend plugins, do ->
         #########
 
         init: ->
-            this.users = null         # array of user information
             this.select_state = null  # state of display of user select
             this.selected = null      # current user select index
             this.$userSelect = null   # user select element
 
             this.validateOptions()
-            this.loadUsers()
+            load_users(this.opts.usersUrl)
             this.setupUserSelect()
             this.setupEditor()
 
@@ -118,21 +139,6 @@ $.extend plugins, do ->
                 if not this.opts[name]
                     throw "Mention plugin requires option: #{ name }"
 
-        loadUsers: ->
-            # async call to get user data
-            that = this
-
-            $.getJSON this.opts.usersUrl, (data) ->
-                that.users = data
-                for user, i in that.users
-                    # create actual dom node for userSelect
-                    user.$element = $ """
-                        <li class="user">
-                            <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })
-                        </li>"""
-                    # put a pointer pointer back to user object
-                    # TODO: perhaps just make this a normal reference
-                    user.$element.data 'index', i
 
         setupUserSelect: ->
             # init it's state to false
@@ -188,7 +194,9 @@ $.extend plugins, do ->
                         tabFocus = this.opts.tabFocus
                         this.opts.tabFocus = false
 
-                        this.chooseUser()
+                        if this.select_state and this.$userSelect.children().length > 0
+                            this.chooseUser()
+
                         this.closeMention()
                         this.setCursorAfterMention()
                         this.disableSelect()
@@ -244,7 +252,7 @@ $.extend plugins, do ->
 
             # build initial user select
             for i in [0...this.opts.maxUsers]
-                this.$userSelect.append this.users[i].$element
+                this.$userSelect.append users[i].$element
 
             this.paintSelected()
             this.$userSelect.show()
@@ -268,7 +276,9 @@ $.extend plugins, do ->
 
         userFromSelected: ->
             i = this.$userSelect.children('li').eq(this.selected).data 'index'
-            this.users[i]
+            if i == null or i == undefined or i < 0 or i >= users.length
+                throw "index #{ i } out of bounds of user array #{ users.length }"
+            users[i]
 
         filterUsers: ->
             # empty out userSelect
@@ -279,7 +289,7 @@ $.extend plugins, do ->
 
             # build filtered users list
             count = 0
-            for user in this.users
+            for user in users
                 # break on max filter users
                 break if count >= this.opts.maxUsers
 
