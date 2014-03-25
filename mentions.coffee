@@ -8,8 +8,10 @@ plugins = root.RedactorPlugins = root.RedactorPlugins ? {}
 
 $.extend utils, do ->
     getCursorInfo: ->
-        selection: window.getSelection()
-        range: selection.getRangeAt 0
+        selection = window.getSelection()
+        range = selection.getRangeAt 0
+        selection: selection
+        range: range
         offset: range.startOffset
         container: range.startContainer
 
@@ -56,19 +58,26 @@ $.extend plugins, do ->
             $.getJSON this.opts.usersUrl, (data) ->
                 that.users = data
                 for user, i in that.users
-                    user.$element = $ '''
+                    # create actual dom node for userSelect
+                    user.$element = $ """
                         <li class="user">
                             <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })
-                        </li>'''
-                    user.$element.data 'username', user.username
+                        </li>"""
+                    # put a pointer pointer back to user object
+                    # TODO: perhaps just make this a normal reference
                     user.$element.data 'index', i
 
         setupUserSelect: ->
+            # init it's state to false
             this.select_state = false
+            # create dom node
             this.$userSelect = $ '<ol class="redactor_ user_select"></ol>'
+            # setup event handlers
             this.$userSelect.mousemove $.proxy(this.selectMousemove, this)
             this.$userSelect.mousedown $.proxy(this.selectMousedown, this)
+            # hide it by default
             this.$userSelect.hide()
+            # insert it into active dom tree
             this.$editor.after this.$userSelect
 
         # select event handlers
@@ -92,7 +101,7 @@ $.extend plugins, do ->
 
             if this.cursorInMention()
                 switch e.keyCode
-                    when 27, 32  # escape, space
+                    when 27  # escape
                         this.closeMention()
                         this.disableSelect()
 
@@ -169,11 +178,14 @@ $.extend plugins, do ->
 
         # select utils
         chooseUser: ->
-            i = this.$userSelect.children('li').eq(this.selected).data 'index'
-            user = this.users[i]
+            user = this.userFromSelected()
             mention = this.getCurrentMention()
-            mention.attr "href", "/user/{# user.username }"
-            mention.text "@{# user.username }"
+            mention.attr "href", "/user/#{ user.username }"
+            mention.text "@#{ user.username }"
+
+        userFromSelected: ->
+            i = this.$userSelect.children('li').eq(this.selected).data 'index'
+            this.users[i]
 
         filterUsers: ->
             # empty out userSelect
@@ -181,6 +193,7 @@ $.extend plugins, do ->
 
             # query for filter_string once
             filter_string = this.getFilterString()
+            console.log escape(filter_string)
 
             # build filtered users list
             count = 0
@@ -209,6 +222,8 @@ $.extend plugins, do ->
             filter_str = mention.text()
             # remove @ from the begining
             filter_str = filter_str.slice 1
+            # replace A0 with 20
+            filter_str = filter_str.replace '\u00a0', '\u0020'
             # remove zero width spaces
             filter_str.replace '\u200b', ''
 

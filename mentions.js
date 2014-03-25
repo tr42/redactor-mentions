@@ -13,9 +13,12 @@
   $.extend(utils, (function() {
     return {
       getCursorInfo: function() {
+        var range, selection;
+        selection = window.getSelection();
+        range = selection.getRangeAt(0);
         return {
-          selection: window.getSelection(),
-          range: selection.getRangeAt(0),
+          selection: selection,
+          range: range,
           offset: range.startOffset,
           container: range.startContainer
         };
@@ -80,8 +83,7 @@
             _results = [];
             for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
               user = _ref2[i];
-              user.$element = $('<li class="user">\n    <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })\n</li>');
-              user.$element.data('username', user.username);
+              user.$element = $("<li class=\"user\">\n    <img src=\"" + user.icon + "\" />" + user.username + "  (" + user.name + ")\n</li>");
               _results.push(user.$element.data('index', i));
             }
             return _results;
@@ -118,7 +120,6 @@
           if (this.cursorInMention()) {
             switch (e.keyCode) {
               case 27:
-              case 32:
                 this.closeMention();
                 this.disableSelect();
                 break;
@@ -187,17 +188,22 @@
           return $elements.eq(this.selected).addClass('selected');
         },
         chooseUser: function() {
-          var i, mention, user;
-          i = this.$userSelect.children('li').eq(this.selected).data('index');
-          user = this.users[i];
+          var mention, user;
+          user = this.userFromSelected();
           mention = this.getCurrentMention();
-          mention.attr("href", "/user/{# user.username }");
-          return mention.text("@{# user.username }");
+          mention.attr("href", "/user/" + user.username);
+          return mention.text("@" + user.username);
+        },
+        userFromSelected: function() {
+          var i;
+          i = this.$userSelect.children('li').eq(this.selected).data('index');
+          return this.users[i];
         },
         filterUsers: function() {
           var count, filter_string, user, _i, _len, _ref2;
           this.$userSelect.children().detach();
           filter_string = this.getFilterString();
+          console.log(escape(filter_string));
           count = 0;
           _ref2 = this.users;
           for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
@@ -225,6 +231,7 @@
           mention = this.getCurrentMention();
           filter_str = mention.text();
           filter_str = filter_str.slice(1);
+          filter_str = filter_str.replace('\u00a0', '\u0020');
           return filter_str.replace('\u200b', '');
         },
         createMention: function() {
