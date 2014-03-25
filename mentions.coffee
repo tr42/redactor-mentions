@@ -6,13 +6,18 @@ $ = root.jQuery
 utils = root.RedactorUtils = root.RedactorUtils ? {}
 plugins = root.RedactorPlugins = root.RedactorPlugins ? {}
 users = null
-_users_loaded = false
 
-load_users = (url) ->
+single_run = (func) ->
     # only run once
-    return if _users_loaded
-    _users_loaded = true
+    func._has_ran = false
+    func._return_value = null
+    ->
+        if not func._has_ran
+            func._has_ran = true
+            func._return_value = func.apply this, arguments
+        func._return_value
 
+load_users = single_run (url) ->
     # async call to get user data
     $.getJSON url, (data) ->
         users = data
