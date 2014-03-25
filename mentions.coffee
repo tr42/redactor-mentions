@@ -5,36 +5,23 @@ root = exports ? this
 $ = root.jQuery
 utils = root.RedactorUtils = root.RedactorUtils ? {}
 plugins = root.RedactorPlugins = root.RedactorPlugins ? {}
-users = null
+users = null  # where we store all the user data
 
-single_run = (func) ->
-    # only run once
-    func._has_ran = false
-    func._return_value = null
-    ->
-        if not func._has_ran
-            func._has_ran = true
-            func._return_value = func.apply this, arguments
-        func._return_value
-
-load_users = single_run (url) ->
-    # async call to get user data
-    $.getJSON url, (data) ->
-        users = data
-
-        for user, i in data
-            # create actual dom node for userSelect
-            user.$element = $ """
-                <li class="user">
-                    <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })
-                </li>"""
-
-            # put a pointer pointer back to user object
-            # TODO: perhaps just make this a normal reference
-            user.$element.data 'index', i
 
 # extend utils with stuff that isn't concerned with redactor instance
 $.extend utils, do ->
+    # needed in other parts in utils
+    memoize = (func) ->
+        # only run func once even if it's called multiple times
+        func._ran = false
+        func._return = null
+        ->
+            if not func._ran
+                func._ran = true
+                func._return = func.apply this, arguments
+            func._return
+    memoize: memoize
+
     any: (arr) ->
         # if any elements of arr are truthy then return true, else false
         for element in arr
@@ -49,10 +36,26 @@ $.extend utils, do ->
         # return current cursor information
         selection = window.getSelection()
         range = selection.getRangeAt 0
+
         selection: selection
         range: range
         offset: range.startOffset
         container: range.startContainer
+
+    loadUsers: memoize (url) ->
+        # async call to get user data and assign it into module global
+        $.getJSON url, (data) ->
+            users = data
+
+            for user, i in data
+                # create actual dom node for userSelect
+                user.$element = $ """
+                    <li class="user">
+                        <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })
+                    </li>"""
+
+                # put a pointer pointer back to user object
+                user.$element[0].user = user
 
     filterTest: (user, filter_string) ->
         # test if user passes through the filter given by filter_string
@@ -61,9 +64,8 @@ $.extend utils, do ->
             user.username.toLowerCase()
             user.name.toLowerCase()
         ]
-        utils.any(test_strings.map((el) ->
+        utils.any test_strings.map (el) ->
             el.indexOf(filter_string) != -1
-        ))
 
     createMention: ->
         # create a new mention and insert it at cursor position
@@ -94,12 +96,10 @@ $.extend utils, do ->
         cursor_info.selection.addRange new_range
 
     cursorAfterMentionStart: ->
-        # test to see if the cursor is after a place where a mention can be
-        # inserted at
+        # test to see if the cursor is at a place where a mention can be inserted
 
         # get cursor element and offset
         cursor_info = utils.getCursorInfo()
-
         # if cursor isn't on a text element return false
         return false if cursor_info.container.nodeName != "#text"
 
@@ -109,12 +109,9 @@ $.extend utils, do ->
         left = left.replace /\u00a0/g, ' '
         # remove zero width spaces
         left = left.replace /\u200b/g, ''
+        # slice off last two characters and test them
+        left.slice(-2) in ['@', ' @']
 
-        previous_chars = left.slice -2
-        previous_chars in [
-            '@'
-            ' @'
-        ]
 
 # extend plugins with stuff that is concerned with redactor instance
 $.extend plugins, do ->
@@ -130,7 +127,7 @@ $.extend plugins, do ->
             this.$userSelect = null   # user select element
 
             this.validateOptions()
-            load_users(this.opts.usersUrl)
+            utils.loadUsers(this.opts.usersUrl)
             this.setupUserSelect()
             this.setupEditor()
 
@@ -280,10 +277,7 @@ $.extend plugins, do ->
             mention.text "@#{ user.username }"
 
         userFromSelected: ->
-            i = this.$userSelect.children('li').eq(this.selected).data 'index'
-            if i == null or i == undefined or i < 0 or i >= users.length
-                throw "index #{ i } out of bounds of user array #{ users.length }"
-            users[i]
+            this.$userSelect.children('li')[this.selected].user
 
         filterUsers: ->
             # empty out userSelect
