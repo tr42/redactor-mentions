@@ -39,7 +39,7 @@ $.extend utils, do ->
         ))
 
     createMention: ->
-        # create a new mention an insert it at cursor position
+        # create a new mention and insert it at cursor position
         cursor_info = utils.getCursorInfo()
         mention = $ '<a href="#" class="mention">@\u200b</a>'
 
@@ -78,11 +78,12 @@ $.extend utils, do ->
 
         # figure out what is left of the cursor
         left = cursor_info.container.data.slice 0, cursor_info.offset
-        left = left.replace '\u00a0', ' '
-        left = left.replace '\u200b', ''
+        # replace A0 with 20
+        left = left.replace /\u00a0/g, ' '
+        # remove zero width spaces
+        left = left.replace /\u200b/g, ''
 
         previous_chars = left.slice -2
-
         previous_chars in [
             '@'
             ' @'
@@ -294,9 +295,9 @@ $.extend plugins, do ->
             # remove @ from the begining
             filter_str = filter_str.slice 1
             # replace A0 with 20
-            filter_str = filter_str.replace '\u00a0', ' '
+            filter_str = filter_str.replace /\u00a0/g, ' '
             # remove zero width spaces
-            filter_str.replace '\u200b', ''
+            filter_str.replace /\u200b/g, ''
 
         #########################
         # mention functionality #
@@ -318,11 +319,16 @@ $.extend plugins, do ->
             parents = current.parents '.mention'
             return parents.eq 0 if parents.length > 0
 
-            # default to false
-            false
+            # throw if there isn't a current mention
+            throw "There is no current mention."
 
         cursorInMention: ->
-            this.getCurrentMention().length > 0
+            try
+                this.getCurrentMention().length > 0
+            catch e
+                return false if e == "There is no current mention."
+                throw e
+            true
 
         setCursorAfterMention: ->
             mention = this.getCurrentMention()

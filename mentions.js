@@ -68,8 +68,8 @@
           return false;
         }
         left = cursor_info.container.data.slice(0, cursor_info.offset);
-        left = left.replace('\u00a0', ' ');
-        left = left.replace('\u200b', '');
+        left = left.replace(/\u00a0/g, ' ');
+        left = left.replace(/\u200b/g, '');
         previous_chars = left.slice(-2);
         return previous_chars === '@' || previous_chars === ' @';
       }
@@ -264,8 +264,8 @@
           mention = this.getCurrentMention();
           filter_str = mention.text();
           filter_str = filter_str.slice(1);
-          filter_str = filter_str.replace('\u00a0', ' ');
-          return filter_str.replace('\u200b', '');
+          filter_str = filter_str.replace(/\u00a0/g, ' ');
+          return filter_str.replace(/\u200b/g, '');
         },
         closeMention: function() {
           var mention;
@@ -282,10 +282,20 @@
           if (parents.length > 0) {
             return parents.eq(0);
           }
-          return false;
+          throw "There is no current mention.";
         },
         cursorInMention: function() {
-          return this.getCurrentMention().length > 0;
+          var e;
+          try {
+            this.getCurrentMention().length > 0;
+          } catch (_error) {
+            e = _error;
+            if (e === "There is no current mention.") {
+              return false;
+            }
+            throw e;
+          }
+          return true;
         },
         setCursorAfterMention: function() {
           var mention, new_range, selection;
