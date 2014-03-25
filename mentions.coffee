@@ -1,7 +1,7 @@
 # grab global object
 root = exports ? this
 
-# grab redactor globals
+# grab jQuery/redactor globals
 $ = root.jQuery
 utils = root.RedactorUtils = root.RedactorUtils ? {}
 plugins = root.RedactorPlugins = root.RedactorPlugins ? {}
