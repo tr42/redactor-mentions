@@ -56,8 +56,7 @@
           this.validateOptions();
           this.loadUsers();
           this.setupUserSelect();
-          this.$editor.keydown($.proxy(this.editorKeydown, this));
-          return this.$editor.mousedown($.proxy(this.editorMousedown, this));
+          return this.setupEditor();
         },
         validateOptions: function() {
           var name, required, _i, _len, _results;
@@ -92,10 +91,14 @@
         setupUserSelect: function() {
           this.select_state = false;
           this.$userSelect = $('<ol class="redactor_ user_select"></ol>');
+          this.$userSelect.hide();
           this.$userSelect.mousemove($.proxy(this.selectMousemove, this));
           this.$userSelect.mousedown($.proxy(this.selectMousedown, this));
-          this.$userSelect.hide();
           return this.$editor.after(this.$userSelect);
+        },
+        setupEditor: function() {
+          this.$editor.keydown($.proxy(this.editorKeydown, this));
+          return this.$editor.mousedown($.proxy(this.editorMousedown, this));
         },
         selectMousemove: function(e) {
           var $target;
@@ -203,7 +206,6 @@
           var count, filter_string, user, _i, _len, _ref2;
           this.$userSelect.children().detach();
           filter_string = this.getFilterString();
-          console.log(escape(filter_string));
           count = 0;
           _ref2 = this.users;
           for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
@@ -231,7 +233,7 @@
           mention = this.getCurrentMention();
           filter_str = mention.text();
           filter_str = filter_str.slice(1);
-          filter_str = filter_str.replace('\u00a0', '\u0020');
+          filter_str = filter_str.replace('\u00a0', ' ');
           return filter_str.replace('\u200b', '');
         },
         createMention: function() {
@@ -274,22 +276,21 @@
           return this.getCurrentMention().length > 0;
         },
         cursorAfterMentionStart: function() {
-          var cursor_info, left, matches, previous_chars;
-          matches = ["@", " @", "\u200b@", "@\u200B"];
+          var cursor_info, left, previous_chars;
           cursor_info = utils.getCursorInfo();
           if (cursor_info.container.nodeName !== "#text") {
             return false;
           }
           left = cursor_info.container.data.slice(0, cursor_info.offset);
+          left = left.replace('\u00a0', ' ');
+          left = left.replace('\u200b', '');
           previous_chars = left.slice(-2);
-          return utils.any(matches.map(function(el) {
-            return el === previous_chars;
-          }));
+          return previous_chars === '@' || previous_chars === ' @';
         },
         setCursorAfterMention: function() {
           var mention, new_range, selection;
           mention = this.getCurrentMention();
-          mention.after(" ");
+          mention.after("\u00a0");
           selection = window.getSelection();
           new_range = document.createRange();
           new_range.setStart(mention[0].nextSibling, 1);

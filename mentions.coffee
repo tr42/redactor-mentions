@@ -37,13 +37,12 @@ $.extend plugins, do ->
             this.$userSelect = null   # user select element
 
             this.validateOptions()
-
             this.loadUsers()
             this.setupUserSelect()
-            this.$editor.keydown $.proxy(this.editorKeydown, this)
-            this.$editor.mousedown $.proxy(this.editorMousedown, this)
+            this.setupEditor()
 
         validateOptions: ->
+            # make sure options are set to valid values
             required = [
                 "usersUrl"
                 "maxUsers"
@@ -53,6 +52,7 @@ $.extend plugins, do ->
                     throw "Mention plugin requires option: #{ name }"
 
         loadUsers: ->
+            # async call to get user data
             that = this
 
             $.getJSON this.opts.usersUrl, (data) ->
@@ -72,13 +72,18 @@ $.extend plugins, do ->
             this.select_state = false
             # create dom node
             this.$userSelect = $ '<ol class="redactor_ user_select"></ol>'
+            # hide it by default
+            this.$userSelect.hide()
             # setup event handlers
             this.$userSelect.mousemove $.proxy(this.selectMousemove, this)
             this.$userSelect.mousedown $.proxy(this.selectMousedown, this)
-            # hide it by default
-            this.$userSelect.hide()
             # insert it into active dom tree
             this.$editor.after this.$userSelect
+
+        setupEditor: ->
+            # setup event handlers
+            this.$editor.keydown $.proxy(this.editorKeydown, this)
+            this.$editor.mousedown $.proxy(this.editorMousedown, this)
 
         # select event handlers
         selectMousemove: (e) ->
@@ -193,7 +198,6 @@ $.extend plugins, do ->
 
             # query for filter_string once
             filter_string = this.getFilterString()
-            console.log escape(filter_string)
 
             # build filtered users list
             count = 0
@@ -223,7 +227,7 @@ $.extend plugins, do ->
             # remove @ from the begining
             filter_str = filter_str.slice 1
             # replace A0 with 20
-            filter_str = filter_str.replace '\u00a0', '\u0020'
+            filter_str = filter_str.replace '\u00a0', ' '
             # remove zero width spaces
             filter_str.replace '\u200b', ''
 
@@ -280,13 +284,6 @@ $.extend plugins, do ->
             this.getCurrentMention().length > 0
 
         cursorAfterMentionStart: ->
-            matches = [
-                "@"
-                " @"
-                "\u200b@"
-                "@\u200B"
-            ]
-
             # get cursor element and offset
             cursor_info = utils.getCursorInfo()
 
@@ -295,17 +292,21 @@ $.extend plugins, do ->
 
             # figure out what is left of the cursor
             left = cursor_info.container.data.slice 0, cursor_info.offset
+            left = left.replace '\u00a0', ' '
+            left = left.replace '\u200b', ''
+
             previous_chars = left.slice -2
 
-            utils.any(matches.map((el) ->
-                el == previous_chars
-            ))
+            previous_chars in [
+                '@'
+                ' @'
+            ]
 
         setCursorAfterMention: ->
             mention = this.getCurrentMention()
 
             # insert space after mention
-            mention.after " "
+            mention.after "\u00a0"
 
             # set cursor
             selection = window.getSelection()
