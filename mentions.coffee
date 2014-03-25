@@ -6,6 +6,7 @@ $ = root.jQuery
 utils = root.RedactorUtils = root.RedactorUtils ? {}
 plugins = root.RedactorPlugins = root.RedactorPlugins ? {}
 
+# extend utils with stuff that isn't concerned with redactor instance
 $.extend utils, do ->
     getCursorInfo: ->
         selection = window.getSelection()
@@ -20,16 +21,78 @@ $.extend utils, do ->
             return true if element
         false
 
-$.extend plugins, do ->
-    update_select = ->
-        if this.cursorInMention()
-            this.filterUsers()
-            this.$userSelect.show()
-        else
-            this.$userSelect.hide()
+    deadLink: (e) ->
+        e.preventDefault()
 
+    filterTest: (user, filter_string) ->
+        filter_string = filter_string.toLowerCase()
+        test_strings = [
+            user.username.toLowerCase()
+            user.name.toLowerCase()
+        ]
+        utils.any(test_strings.map((el) ->
+            el.indexOf(filter_string) != -1
+        ))
+
+    createMention: ->
+        # create a new mention an insert it at cursor position
+
+        cursor_info = utils.getCursorInfo()
+        mention = $ '<a href="#" class="mention">@\u200b</a>'
+
+        # make sure mention links aren't clickable
+        mention.click utils.deadLink
+
+        # insert mention where cursor is at
+        # figure out what text is left and right of the cursor
+        left = cursor_info.container.data.slice 0, cursor_info.offset
+        right = cursor_info.container.data.slice cursor_info.offset
+
+        # slice off the @ sign
+        left = left.slice 0, -1
+
+        # insert the mention inbetween left and right
+        cursor_info.container.data = left
+        mention.insertAfter cursor_info.container
+        mention.after right
+
+        # set cursor positon into mention
+        new_range = document.createRange()
+        new_range.setStart mention[0].firstChild, 1
+        new_range.setEnd mention[0].firstChild, 1
+        cursor_info.selection.removeAllRanges()
+        cursor_info.selection.addRange new_range
+
+    cursorAfterMentionStart: ->
+        # test to see if the cursor is after a place where a mention can be
+        # inserted at
+
+        # get cursor element and offset
+        cursor_info = utils.getCursorInfo()
+
+        # if cursor isn't on a text element return false
+        return false if cursor_info.container.nodeName != "#text"
+
+        # figure out what is left of the cursor
+        left = cursor_info.container.data.slice 0, cursor_info.offset
+        left = left.replace '\u00a0', ' '
+        left = left.replace '\u200b', ''
+
+        previous_chars = left.slice -2
+
+        previous_chars in [
+            '@'
+            ' @'
+        ]
+
+# extend plugins with stuff that is concerned with redactor instance
+$.extend plugins, do ->
     mentions:
-        # setup
+
+        #########
+        # setup #
+        #########
+
         init: ->
             this.users = null         # array of user information
             this.select_state = null  # state of display of user select
@@ -85,6 +148,10 @@ $.extend plugins, do ->
             this.$editor.keydown $.proxy(this.editorKeydown, this)
             this.$editor.mousedown $.proxy(this.editorMousedown, this)
 
+        ##################
+        # event handlers #
+        ##################
+
         # select event handlers
         selectMousemove: (e) ->
             $target = $ e.target
@@ -135,18 +202,28 @@ $.extend plugins, do ->
                         e.preventDefault()
                         this.moveSelectDown()
 
-            else if this.cursorAfterMentionStart()
-                this.createMention()
+            else if utils.cursorAfterMentionStart()
+                utils.createMention()
                 this.enableSelect()
 
             # after every key press, make sure that select state is correct
-            setTimeout $.proxy(update_select, this), 0
+            setTimeout $.proxy(this.updateSelect, this), 0
 
         editorMousedown: ->
             # after every mousepress, make sure that select state is correct
-            setTimeout $.proxy(update_select, this), 0
+            setTimeout $.proxy(this.updateSelect, this), 0
 
-        # select navigation
+        ########################
+        # select functionality #
+        ########################
+
+        updateSelect: ->
+            if this.cursorInMention()
+                this.filterUsers()
+                this.$userSelect.show()
+            else
+                this.$userSelect.hide()
+
         moveSelectUp: ->
             if this.selected > 0
                 this.selected -= 1
@@ -157,7 +234,6 @@ $.extend plugins, do ->
                 this.selected += 1
             this.paintSelected()
 
-        # select state
         enableSelect: ->
             this.select_state = true
             this.selected = 0
@@ -175,13 +251,11 @@ $.extend plugins, do ->
             this.$userSelect.children().detach()
             this.$userSelect.hide()
 
-        # select display
         paintSelected: ->
             $elements = $ 'li', this.$userSelect
             $elements.removeClass 'selected'
             $elements.eq(this.selected).addClass 'selected'
 
-        # select utils
         chooseUser: ->
             user = this.userFromSelected()
             mention = this.getCurrentMention()
@@ -205,21 +279,11 @@ $.extend plugins, do ->
                 # break on max filter users
                 break if count >= this.opts.maxUsers
 
-                if this.filterTest user, filter_string
+                if utils.filterTest user, filter_string
                     this.$userSelect.append user.$element
                     count++
 
             this.paintSelected()
-
-        filterTest: (user, filter_string) ->
-            filter_string = filter_string.toLowerCase()
-            test_strings = [
-                user.username.toLowerCase()
-                user.name.toLowerCase()
-            ]
-            utils.any(test_strings.map((el) ->
-                el.indexOf(filter_string) != -1
-            ))
 
         getFilterString: ->
             mention = this.getCurrentMention()
@@ -231,40 +295,14 @@ $.extend plugins, do ->
             # remove zero width spaces
             filter_str.replace '\u200b', ''
 
-        # mention
-        createMention: ->
-            cursor_info = utils.getCursorInfo()
-            mention = $ '<a href="#" class="mention">@\u200b</a>'
-
-            # make sure mention links aren't clickable
-            mention.click (e) ->
-                e.preventDefault()
-
-            # insert mention where cursor is at
-            # figure out what text is left and right of the cursor
-            left = cursor_info.container.data.slice 0, cursor_info.offset
-            right = cursor_info.container.data.slice cursor_info.offset
-
-            # slice off the @ sign
-            left = left.slice 0, -1
-
-            # insert the mention inbetween left and right
-            cursor_info.container.data = left
-            mention.insertAfter cursor_info.container
-            mention.after right
-
-            # set cursor positon into mention
-            new_range = document.createRange()
-            new_range.setStart mention[0].firstChild, 1
-            new_range.setEnd mention[0].firstChild, 1
-            cursor_info.selection.removeAllRanges()
-            cursor_info.selection.addRange new_range
+        #########################
+        # mention functionality #
+        #########################
 
         closeMention: ->
             mention = this.getCurrentMention()
             mention.attr "contenteditable", "false"
 
-        # helpers
         getCurrentMention: ->
             # return the current mention based on cursor position, if there
             # isn't one then return false
@@ -282,25 +320,6 @@ $.extend plugins, do ->
 
         cursorInMention: ->
             this.getCurrentMention().length > 0
-
-        cursorAfterMentionStart: ->
-            # get cursor element and offset
-            cursor_info = utils.getCursorInfo()
-
-            # if cursor isn't on a text element return false
-            return false if cursor_info.container.nodeName != "#text"
-
-            # figure out what is left of the cursor
-            left = cursor_info.container.data.slice 0, cursor_info.offset
-            left = left.replace '\u00a0', ' '
-            left = left.replace '\u200b', ''
-
-            previous_chars = left.slice -2
-
-            previous_chars in [
-                '@'
-                ' @'
-            ]
 
         setCursorAfterMention: ->
             mention = this.getCurrentMention()

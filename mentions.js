@@ -32,20 +32,51 @@
           }
         }
         return false;
+      },
+      deadLink: function(e) {
+        return e.preventDefault();
+      },
+      filterTest: function(user, filter_string) {
+        var test_strings;
+        filter_string = filter_string.toLowerCase();
+        test_strings = [user.username.toLowerCase(), user.name.toLowerCase()];
+        return utils.any(test_strings.map(function(el) {
+          return el.indexOf(filter_string) !== -1;
+        }));
+      },
+      createMention: function() {
+        var cursor_info, left, mention, new_range, right;
+        cursor_info = utils.getCursorInfo();
+        mention = $('<a href="#" class="mention">@\u200b</a>');
+        mention.click(utils.deadLink);
+        left = cursor_info.container.data.slice(0, cursor_info.offset);
+        right = cursor_info.container.data.slice(cursor_info.offset);
+        left = left.slice(0, -1);
+        cursor_info.container.data = left;
+        mention.insertAfter(cursor_info.container);
+        mention.after(right);
+        new_range = document.createRange();
+        new_range.setStart(mention[0].firstChild, 1);
+        new_range.setEnd(mention[0].firstChild, 1);
+        cursor_info.selection.removeAllRanges();
+        return cursor_info.selection.addRange(new_range);
+      },
+      cursorAfterMentionStart: function() {
+        var cursor_info, left, previous_chars;
+        cursor_info = utils.getCursorInfo();
+        if (cursor_info.container.nodeName !== "#text") {
+          return false;
+        }
+        left = cursor_info.container.data.slice(0, cursor_info.offset);
+        left = left.replace('\u00a0', ' ');
+        left = left.replace('\u200b', '');
+        previous_chars = left.slice(-2);
+        return previous_chars === '@' || previous_chars === ' @';
       }
     };
   })());
 
   $.extend(plugins, (function() {
-    var update_select;
-    update_select = function() {
-      if (this.cursorInMention()) {
-        this.filterUsers();
-        return this.$userSelect.show();
-      } else {
-        return this.$userSelect.hide();
-      }
-    };
     return {
       mentions: {
         init: function() {
@@ -147,14 +178,22 @@
                 e.preventDefault();
                 this.moveSelectDown();
             }
-          } else if (this.cursorAfterMentionStart()) {
-            this.createMention();
+          } else if (utils.cursorAfterMentionStart()) {
+            utils.createMention();
             this.enableSelect();
           }
-          return setTimeout($.proxy(update_select, this), 0);
+          return setTimeout($.proxy(this.updateSelect, this), 0);
         },
         editorMousedown: function() {
-          return setTimeout($.proxy(update_select, this), 0);
+          return setTimeout($.proxy(this.updateSelect, this), 0);
+        },
+        updateSelect: function() {
+          if (this.cursorInMention()) {
+            this.filterUsers();
+            return this.$userSelect.show();
+          } else {
+            return this.$userSelect.hide();
+          }
         },
         moveSelectUp: function() {
           if (this.selected > 0) {
@@ -213,20 +252,12 @@
             if (count >= this.opts.maxUsers) {
               break;
             }
-            if (this.filterTest(user, filter_string)) {
+            if (utils.filterTest(user, filter_string)) {
               this.$userSelect.append(user.$element);
               count++;
             }
           }
           return this.paintSelected();
-        },
-        filterTest: function(user, filter_string) {
-          var test_strings;
-          filter_string = filter_string.toLowerCase();
-          test_strings = [user.username.toLowerCase(), user.name.toLowerCase()];
-          return utils.any(test_strings.map(function(el) {
-            return el.indexOf(filter_string) !== -1;
-          }));
         },
         getFilterString: function() {
           var filter_str, mention;
@@ -235,25 +266,6 @@
           filter_str = filter_str.slice(1);
           filter_str = filter_str.replace('\u00a0', ' ');
           return filter_str.replace('\u200b', '');
-        },
-        createMention: function() {
-          var cursor_info, left, mention, new_range, right;
-          cursor_info = utils.getCursorInfo();
-          mention = $('<a href="#" class="mention">@\u200b</a>');
-          mention.click(function(e) {
-            return e.preventDefault();
-          });
-          left = cursor_info.container.data.slice(0, cursor_info.offset);
-          right = cursor_info.container.data.slice(cursor_info.offset);
-          left = left.slice(0, -1);
-          cursor_info.container.data = left;
-          mention.insertAfter(cursor_info.container);
-          mention.after(right);
-          new_range = document.createRange();
-          new_range.setStart(mention[0].firstChild, 1);
-          new_range.setEnd(mention[0].firstChild, 1);
-          cursor_info.selection.removeAllRanges();
-          return cursor_info.selection.addRange(new_range);
         },
         closeMention: function() {
           var mention;
@@ -274,18 +286,6 @@
         },
         cursorInMention: function() {
           return this.getCurrentMention().length > 0;
-        },
-        cursorAfterMentionStart: function() {
-          var cursor_info, left, previous_chars;
-          cursor_info = utils.getCursorInfo();
-          if (cursor_info.container.nodeName !== "#text") {
-            return false;
-          }
-          left = cursor_info.container.data.slice(0, cursor_info.offset);
-          left = left.replace('\u00a0', ' ');
-          left = left.replace('\u200b', '');
-          previous_chars = left.slice(-2);
-          return previous_chars === '@' || previous_chars === ' @';
         },
         setCursorAfterMention: function() {
           var mention, new_range, selection;
