@@ -11,7 +11,7 @@ users = null  # where we store all the user data
 # extend utils with stuff that isn't concerned with redactor instance
 $.extend utils, do ->
     # needed in other parts in utils
-    memoize = (func) ->
+    once = (func) ->
         # only run func once even if it's called multiple times
         func._ran = false
         func._return = null
@@ -20,7 +20,7 @@ $.extend utils, do ->
                 func._ran = true
                 func._return = func.apply this, arguments
             func._return
-    memoize: memoize
+    once: once
 
     any: (arr) ->
         # if any elements of arr are truthy then return true, else false
@@ -42,7 +42,7 @@ $.extend utils, do ->
         offset: range.startOffset
         container: range.startContainer
 
-    loadUsers: memoize (url) ->
+    loadUsers: once (url) ->
         # async call to get user data and assign it into module global
         $.getJSON url, (data) ->
             users = data

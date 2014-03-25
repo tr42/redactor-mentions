@@ -13,8 +13,8 @@
   users = null;
 
   $.extend(utils, (function() {
-    var memoize;
-    memoize = function(func) {
+    var once;
+    once = function(func) {
       func._ran = false;
       func._return = null;
       return function() {
@@ -26,7 +26,7 @@
       };
     };
     return {
-      memoize: memoize,
+      once: once,
       any: function(arr) {
         var element, _i, _len;
         for (_i = 0, _len = arr.length; _i < _len; _i++) {
@@ -51,7 +51,7 @@
           container: range.startContainer
         };
       },
-      loadUsers: memoize(function(url) {
+      loadUsers: once(function(url) {
         return $.getJSON(url, function(data) {
           var i, user, _i, _len, _results;
           users = data;
