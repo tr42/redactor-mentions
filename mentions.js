@@ -13,16 +13,11 @@
   $.extend(utils, (function() {
     return {
       getCursorInfo: function() {
-        var container, offset, range, selection;
-        selection = window.getSelection();
-        range = selection.getRangeAt(0);
-        offset = range.startOffset;
-        container = range.startContainer;
         return {
-          selection: selection,
-          range: range,
-          offset: offset,
-          container: container
+          selection: window.getSelection(),
+          range: selection.getRangeAt(0),
+          offset: range.startOffset,
+          container: range.startContainer
         };
       },
       any: function(arr) {
@@ -78,16 +73,16 @@
         loadUsers: function() {
           var that;
           that = this;
-          this.users = [];
           return $.getJSON(this.opts.usersUrl, function(data) {
-            var user, _i, _len, _ref2, _results;
+            var i, user, _i, _len, _ref2, _results;
             that.users = data;
             _ref2 = that.users;
             _results = [];
-            for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-              user = _ref2[_i];
+            for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
+              user = _ref2[i];
               user.$element = $('<li class="user">\n    <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })\n</li>');
-              _results.push(user.$element.data('username', user.username));
+              user.$element.data('username', user.username);
+              _results.push(user.$element.data('index', i));
             }
             return _results;
           });
@@ -192,24 +187,27 @@
           return $elements.eq(this.selected).addClass('selected');
         },
         chooseUser: function() {
-          var mention, username;
-          username = this.$userSelect.children().eq(this.selected).data('username');
+          var i, mention, user;
+          i = this.$userSelect.children('li').eq(this.selected).data('index');
+          user = this.users[i];
           mention = this.getCurrentMention();
-          mention.attr("href", "/user/{# username }");
-          return mention.text("@{# username }");
+          mention.attr("href", "/user/{# user.username }");
+          return mention.text("@{# user.username }");
         },
         filterUsers: function() {
-          var filter_string, i, user, _i, _len, _ref2;
+          var count, filter_string, user, _i, _len, _ref2;
           this.$userSelect.children().detach();
           filter_string = this.getFilterString();
+          count = 0;
           _ref2 = this.users;
-          for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
-            user = _ref2[i];
-            if (i >= this.opts.maxUsers) {
+          for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+            user = _ref2[_i];
+            if (count >= this.opts.maxUsers) {
               break;
             }
             if (this.filterTest(user, filter_string)) {
               this.$userSelect.append(user.$element);
+              count++;
             }
           }
           return this.paintSelected();
@@ -227,7 +225,7 @@
           mention = this.getCurrentMention();
           filter_str = mention.text();
           filter_str = filter_str.slice(1);
-          return filter_str.replace(/\u200B/g, '');
+          return filter_str.replace('\u200b', '');
         },
         createMention: function() {
           var cursor_info, left, mention, new_range, right;

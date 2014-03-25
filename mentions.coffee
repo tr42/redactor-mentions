@@ -8,15 +8,10 @@ plugins = root.RedactorPlugins = root.RedactorPlugins ? {}
 
 $.extend utils, do ->
     getCursorInfo: ->
-        selection = window.getSelection()
-        range = selection.getRangeAt 0
-        offset = range.startOffset
-        container = range.startContainer
-
-        selection: selection
-        range: range
-        offset: offset
-        container: container
+        selection: window.getSelection()
+        range: selection.getRangeAt 0
+        offset: range.startOffset
+        container: range.startContainer
 
     any: (arr) ->
         for element in arr
@@ -53,20 +48,20 @@ $.extend plugins, do ->
             ]
             for name in required
                 if not this.opts[name]
-                    throw "Mention plugin requires option: " + name
+                    throw "Mention plugin requires option: #{ name }"
 
         loadUsers: ->
             that = this
-            this.users = []
 
             $.getJSON this.opts.usersUrl, (data) ->
                 that.users = data
-                for user in that.users
+                for user, i in that.users
                     user.$element = $ '''
                         <li class="user">
                             <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })
                         </li>'''
                     user.$element.data 'username', user.username
+                    user.$element.data 'index', i
 
         setupUserSelect: ->
             this.select_state = false
@@ -174,10 +169,11 @@ $.extend plugins, do ->
 
         # select utils
         chooseUser: ->
-            username = this.$userSelect.children().eq(this.selected).data 'username'
+            i = this.$userSelect.children('li').eq(this.selected).data 'index'
+            user = this.users[i]
             mention = this.getCurrentMention()
-            mention.attr "href", "/user/{# username }"
-            mention.text "@{# username }"
+            mention.attr "href", "/user/{# user.username }"
+            mention.text "@{# user.username }"
 
         filterUsers: ->
             # empty out userSelect
@@ -187,12 +183,14 @@ $.extend plugins, do ->
             filter_string = this.getFilterString()
 
             # build filtered users list
-            for user, i in this.users
+            count = 0
+            for user in this.users
                 # break on max filter users
-                break if i >= this.opts.maxUsers
+                break if count >= this.opts.maxUsers
 
                 if this.filterTest user, filter_string
                     this.$userSelect.append user.$element
+                    count++
 
             this.paintSelected()
 
@@ -212,7 +210,7 @@ $.extend plugins, do ->
             # remove @ from the begining
             filter_str = filter_str.slice 1
             # remove zero width spaces
-            return filter_str.replace /\u200B/g, ''
+            filter_str.replace '\u200b', ''
 
         # mention
         createMention: ->
@@ -253,7 +251,7 @@ $.extend plugins, do ->
             # isn't one then return false
 
             # first check the current element, if it is a mention return it
-            current = $(this.getCurrent())
+            current = $ this.getCurrent()
             return current if current.hasClass 'mention'
 
             # else select from parents
@@ -284,7 +282,7 @@ $.extend plugins, do ->
             left = cursor_info.container.data.slice 0, cursor_info.offset
             previous_chars = left.slice -2
 
-            return utils.any(matches.map((el) ->
+            utils.any(matches.map((el) ->
                 el == previous_chars
             ))
 
