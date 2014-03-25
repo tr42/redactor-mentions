@@ -54,7 +54,7 @@ $.extend utils, do ->
                         <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })
                     </li>"""
 
-                # put a pointer pointer back to user object
+                # put a pointer back to user object
                 user.$element[0].user = user
 
     filterTest: (user, filter_string) ->
