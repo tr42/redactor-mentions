@@ -12,17 +12,6 @@
 
   $.extend(utils, (function() {
     return {
-      getCursorInfo: function() {
-        var range, selection;
-        selection = window.getSelection();
-        range = selection.getRangeAt(0);
-        return {
-          selection: selection,
-          range: range,
-          offset: range.startOffset,
-          container: range.startContainer
-        };
-      },
       any: function(arr) {
         var element, _i, _len;
         for (_i = 0, _len = arr.length; _i < _len; _i++) {
@@ -35,6 +24,17 @@
       },
       deadLink: function(e) {
         return e.preventDefault();
+      },
+      getCursorInfo: function() {
+        var range, selection;
+        selection = window.getSelection();
+        range = selection.getRangeAt(0);
+        return {
+          selection: selection,
+          range: range,
+          offset: range.startOffset,
+          container: range.startContainer
+        };
       },
       filterTest: function(user, filter_string) {
         var test_strings;

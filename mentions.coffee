@@ -8,7 +8,18 @@ plugins = root.RedactorPlugins = root.RedactorPlugins ? {}
 
 # extend utils with stuff that isn't concerned with redactor instance
 $.extend utils, do ->
+    any: (arr) ->
+        # if any elements of arr are truthy then return true, else false
+        for element in arr
+            return true if element
+        false
+
+    deadLink: (e) ->
+        # event handler to kill a link (prevent event from propagating)
+        e.preventDefault()
+
     getCursorInfo: ->
+        # return current cursor information
         selection = window.getSelection()
         range = selection.getRangeAt 0
         selection: selection
@@ -16,15 +27,8 @@ $.extend utils, do ->
         offset: range.startOffset
         container: range.startContainer
 
-    any: (arr) ->
-        for element in arr
-            return true if element
-        false
-
-    deadLink: (e) ->
-        e.preventDefault()
-
     filterTest: (user, filter_string) ->
+        # test if user passes through the filter given by filter_string
         filter_string = filter_string.toLowerCase()
         test_strings = [
             user.username.toLowerCase()
@@ -36,7 +40,6 @@ $.extend utils, do ->
 
     createMention: ->
         # create a new mention an insert it at cursor position
-
         cursor_info = utils.getCursorInfo()
         mention = $ '<a href="#" class="mention">@\u200b</a>'
 
