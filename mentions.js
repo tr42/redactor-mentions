@@ -221,9 +221,10 @@
         },
         enableSelect: function() {
           var i, _i, _ref2;
+          _ref2 = users.length < this.opts.maxUsers ? users.length : this.opts.maxUsers;
           this.select_state = true;
           this.selected = 0;
-          for (i = _i = 0, _ref2 = this.opts.maxUsers; 0 <= _ref2 ? _i < _ref2 : _i > _ref2; i = 0 <= _ref2 ? ++_i : --_i) {
+          for (i = _i = 0; 0 <= _ref2 ? _i < _ref2 : _i > _ref2; i = 0 <= _ref2 ? ++_i : --_i) {
             this.$userSelect.append(users[i].$element);
           }
           this.paintSelected();
