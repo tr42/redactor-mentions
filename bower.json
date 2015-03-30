@@ -1,0 +1,19 @@
+{
+  "name": "redactor-mentions",
+  "version": "0.2",
+  "homepage": "https://github.com/thebitguru/redactor-mentions",
+  "authors": [
+    "Jason Keene (https://github.com/jasonkeene)",
+    "Farhan Ahmad <farhan@thebitguru.com>"
+  ],
+  "description": "Mentions plugin for redactor editor.",
+  "keywords": [ "redactor", "editor", "mentions" ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
