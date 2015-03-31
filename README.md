@@ -1,6 +1,8 @@
 # Overview
 
-Updated version of [redactor-mentions](https://github.com/tr42/redactor-mentions) plugin that supports [Redactor 10](http://imperavi.com/redactor/).  My goal is to eventually support searching through AJAX URLs.  This is currently a work in progress.
+Updated version of [redactor-mentions](https://github.com/tr42/redactor-mentions) plugin that supports [Redactor 10](http://imperavi.com/redactor/) and some enhancements (like floating div by the underneath the cursor).  My goal is to eventually support searching through AJAX URLs.  This is currently a work in progress.
+
+Note that this project is under heavy development so no guarantees that it will work for you yet.
 
 # Installation
 
@@ -26,9 +28,11 @@ I am just getting started with this so I haven't published to bower yet.  I will
 
 		$('.post').redactor({
 			plugins: ['mentions'],
-			usersUrl: "users.json", // user data for mentions plugin
-	        maxUsers: 5, // maximum users to show in user select dialog
-	        userUrlPrefix: "/user/" // optional url prefix for user
+            mentions {
+                url: "users.json",   // user data for mentions plugin
+                maxUsers: 5,         // maximum users to show in user select dialog
+                urlPrefix: "/user/"  // optional url prefix for user
+            }
 	    });
 
 The users JSON data should look like:

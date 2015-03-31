@@ -125,40 +125,41 @@ plugins.mentions = ->
        this.mentions.$userSelect = null   # user select element
 
        this.mentions.validateOptions()
-       utils.loadUsers(this.opts.usersUrl)
+       utils.loadUsers(this.opts.mentions.url)
        this.mentions.setupUserSelect()
        this.mentions.setupEditor()
 
    validateOptions: ->
        # make sure options are set to valid values
        required = [
-           "usersUrl"
+           "url"
            "maxUsers"
        ]
        for name in required
-           if not this.opts[name]
+           if not this.opts.mentions[name]
                throw "Mention plugin requires option: #{ name }"
 
 
    setupUserSelect: ->
        # init it's state to false
        this.mentions.select_state = false
-       # create dom node
-       this.mentions.$userSelect = $ '<ol class="redactor_ user_select"></ol>'
+       # create dom nodes
+       this.mentions.$containerDiv = $ '<div class="redactor-mentions-container"></div>'
        # hide it by default
-       this.mentions.$userSelect.hide()
+       this.mentions.$containerDiv.hide()
+
+       this.mentions.$userSelect = $ '<ol class="redactor_ user-select"></ol>'
+       this.mentions.$containerDiv.append this.mentions.$userSelect
        # setup event handlers
        this.mentions.$userSelect.mousemove $.proxy(this.mentions.selectMousemove, this)
-       this.mentions.$userSelect.mousedown $.proxy(this.mentions.selectMousedown, this)
+       this.mentions.$userSelect.mousedown $.proxy(this.mentions.selectClick, this)
        # insert it into active dom tree
-       this.$editor.after this.mentions.$userSelect
+       this.$editor.after this.mentions.$containerDiv
 
    setupEditor: ->
        # setup event handlers
        this.$editor.on "keydown.mentions", $.proxy(this.mentions.editorKeydown, this)
-       this.$editor.on "mousedown.mentions", $.proxy(this.mentions.editorKeydown, this)
-       # this.$editor.keydown $.proxy(this.editorKeydown, this)
-       # this.$editor.mousedown $.proxy(this.editorMousedown, this)
+       this.$editor.on "mousedown.mentions", $.proxy(this.mentions.selectClick, this)
 
    ##################
    # event handlers #
@@ -171,7 +172,7 @@ plugins.mentions = ->
            this.mentions.selected = this.mentions.$userSelect.children().index $target
            this.mentions.paintSelected()
 
-   selectMousedown: (e) ->
+   selectClick: (e) ->
        if this.mentions.select_state
            e.preventDefault()
            this.mentions.chooseUser()
@@ -184,7 +185,7 @@ plugins.mentions = ->
        that = this
 
        if this.mentions.cursorInMention()
-           switch e.keyCode
+           switch e.which
                when 27  # escape
                    this.mentions.closeMention()
                    this.mentions.disableSelect()
@@ -231,12 +232,22 @@ plugins.mentions = ->
    # select functionality #
    ########################
 
+   positionContainerDiv: ->
+       $firstNode = $ this.selection.getNodes()[0]
+       boxOffset = this.$box.offset()
+       nodeOffset = $firstNode.offset()
+       this.mentions.$containerDiv.css(
+           left: nodeOffset.left - boxOffset.left,
+           top: nodeOffset.top - boxOffset.top + parseFloat($firstNode.css("line-height"))
+       )
+
    updateSelect: ->
        if this.mentions.cursorInMention()
            this.mentions.filterUsers()
-           this.mentions.$userSelect.show()
+           this.mentions.positionContainerDiv()
+           this.mentions.$containerDiv.show()
        else
-           this.mentions.$userSelect.hide()
+           this.mentions.$containerDiv.hide()
 
    moveSelectUp: ->
        if this.mentions.selected > 0
@@ -253,17 +264,18 @@ plugins.mentions = ->
        this.mentions.selected = 0
 
        # build initial user select
-       for i in [0...this.opts.maxUsers]
+       for i in [0...this.opts.mentions.maxUsers]
            this.mentions.$userSelect.append users[i].$element
 
        this.mentions.paintSelected()
-       this.mentions.$userSelect.show()
+       this.mentions.positionContainerDiv()
+       this.mentions.$containerDiv.show()
 
    disableSelect: ->
        this.mentions.select_state = false
        this.mentions.selected = null
        this.mentions.$userSelect.children().detach()
-       this.mentions.$userSelect.hide()
+       this.mentions.$containerDiv.hide()
 
    paintSelected: ->
        $elements = $ 'li', this.mentions.$userSelect
@@ -273,7 +285,7 @@ plugins.mentions = ->
    chooseUser: ->
        user = this.mentions.userFromSelected()
        mention = this.mentions.getCurrentMention()
-       prefix = this.opts.userUrlPrefix or '/user/'
+       prefix = this.opts.mentions.urlPrefix or '/user/'
        mention.attr "href", prefix + user.username
        mention.text "@#{ user.username }"
 
@@ -291,7 +303,7 @@ plugins.mentions = ->
        count = 0
        for user in users
            # break on max filter users
-           break if count >= this.opts.maxUsers
+           break if count >= this.opts.mentions.maxUsers
 
            if utils.filterTest user, filter_string
                this.mentions.$userSelect.append user.$element

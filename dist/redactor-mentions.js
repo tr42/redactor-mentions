@@ -109,17 +109,17 @@
         this.mentions.selected = null;
         this.mentions.$userSelect = null;
         this.mentions.validateOptions();
-        utils.loadUsers(this.opts.usersUrl);
+        utils.loadUsers(this.opts.mentions.url);
         this.mentions.setupUserSelect();
         return this.mentions.setupEditor();
       },
       validateOptions: function() {
         var j, len, name, required, results;
-        required = ["usersUrl", "maxUsers"];
+        required = ["url", "maxUsers"];
         results = [];
         for (j = 0, len = required.length; j < len; j++) {
           name = required[j];
-          if (!this.opts[name]) {
+          if (!this.opts.mentions[name]) {
             throw "Mention plugin requires option: " + name;
           } else {
             results.push(void 0);
@@ -129,15 +129,17 @@
       },
       setupUserSelect: function() {
         this.mentions.select_state = false;
-        this.mentions.$userSelect = $('<ol class="redactor_ user_select"></ol>');
-        this.mentions.$userSelect.hide();
+        this.mentions.$containerDiv = $('<div class="redactor-mentions-container"></div>');
+        this.mentions.$containerDiv.hide();
+        this.mentions.$userSelect = $('<ol class="redactor_ user-select"></ol>');
+        this.mentions.$containerDiv.append(this.mentions.$userSelect);
         this.mentions.$userSelect.mousemove($.proxy(this.mentions.selectMousemove, this));
-        this.mentions.$userSelect.mousedown($.proxy(this.mentions.selectMousedown, this));
-        return this.$editor.after(this.mentions.$userSelect);
+        this.mentions.$userSelect.mousedown($.proxy(this.mentions.selectClick, this));
+        return this.$editor.after(this.mentions.$containerDiv);
       },
       setupEditor: function() {
         this.$editor.on("keydown.mentions", $.proxy(this.mentions.editorKeydown, this));
-        return this.$editor.on("mousedown.mentions", $.proxy(this.mentions.editorKeydown, this));
+        return this.$editor.on("mousedown.mentions", $.proxy(this.mentions.selectClick, this));
       },
       selectMousemove: function(e) {
         var $target;
@@ -147,7 +149,7 @@
           return this.mentions.paintSelected();
         }
       },
-      selectMousedown: function(e) {
+      selectClick: function(e) {
         if (this.mentions.select_state) {
           e.preventDefault();
           this.mentions.chooseUser();
@@ -160,7 +162,7 @@
         var tabFocus, that;
         that = this;
         if (this.mentions.cursorInMention()) {
-          switch (e.keyCode) {
+          switch (e.which) {
             case 27:
               this.mentions.closeMention();
               this.mentions.disableSelect();
@@ -197,12 +199,23 @@
       editorMousedown: function() {
         return setTimeout($.proxy(this.mentions.updateSelect, this), 0);
       },
+      positionContainerDiv: function() {
+        var $firstNode, boxOffset, nodeOffset;
+        $firstNode = $(this.selection.getNodes()[0]);
+        boxOffset = this.$box.offset();
+        nodeOffset = $firstNode.offset();
+        return this.mentions.$containerDiv.css({
+          left: nodeOffset.left - boxOffset.left,
+          top: nodeOffset.top - boxOffset.top + parseFloat($firstNode.css("line-height"))
+        });
+      },
       updateSelect: function() {
         if (this.mentions.cursorInMention()) {
           this.mentions.filterUsers();
-          return this.mentions.$userSelect.show();
+          this.mentions.positionContainerDiv();
+          return this.mentions.$containerDiv.show();
         } else {
-          return this.mentions.$userSelect.hide();
+          return this.mentions.$containerDiv.hide();
         }
       },
       moveSelectUp: function() {
@@ -221,17 +234,18 @@
         var i, j, ref2;
         this.mentions.select_state = true;
         this.mentions.selected = 0;
-        for (i = j = 0, ref2 = this.opts.maxUsers; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
+        for (i = j = 0, ref2 = this.opts.mentions.maxUsers; 0 <= ref2 ? j < ref2 : j > ref2; i = 0 <= ref2 ? ++j : --j) {
           this.mentions.$userSelect.append(users[i].$element);
         }
         this.mentions.paintSelected();
-        return this.mentions.$userSelect.show();
+        this.mentions.positionContainerDiv();
+        return this.mentions.$containerDiv.show();
       },
       disableSelect: function() {
         this.mentions.select_state = false;
         this.mentions.selected = null;
         this.mentions.$userSelect.children().detach();
-        return this.mentions.$userSelect.hide();
+        return this.mentions.$containerDiv.hide();
       },
       paintSelected: function() {
         var $elements;
@@ -243,7 +257,7 @@
         var mention, prefix, user;
         user = this.mentions.userFromSelected();
         mention = this.mentions.getCurrentMention();
-        prefix = this.opts.userUrlPrefix || '/user/';
+        prefix = this.opts.mentions.urlPrefix || '/user/';
         mention.attr("href", prefix + user.username);
         return mention.text("@" + user.username);
       },
@@ -257,7 +271,7 @@
         count = 0;
         for (j = 0, len = users.length; j < len; j++) {
           user = users[j];
-          if (count >= this.opts.maxUsers) {
+          if (count >= this.opts.mentions.maxUsers) {
             break;
           }
           if (utils.filterTest(user, filter_string)) {

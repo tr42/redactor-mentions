@@ -1,7 +1,9 @@
 var gulp = require('gulp');
 var coffee = require('gulp-coffee');
+var less = require('gulp-less');
 var cssmin = require('gulp-cssmin');
 var uglify = require('gulp-uglify');
+var sourcemaps = require('gulp-sourcemaps');
 var header = require('gulp-header');
 var rename = require('gulp-rename');
 var pkg = require('./package.json');
@@ -10,7 +12,7 @@ gulp.task('default', ['compile-coffeescript', 'minify-and-copy-css']);
 
 gulp.task('watch', function() {
     gulp.watch('redactor-mentions.coffee', ['compile-coffeescript']);
-    gulp.watch('redactor-mentions.css', ['minify-and-copy-css']);
+    gulp.watch('redactor-mentions.less', ['compile-and-minify-css']);
 });
 
 gulp.task('compile-coffeescript', function() {
@@ -23,18 +25,17 @@ gulp.task('compile-coffeescript', function() {
         .pipe(gulp.dest('dist'));
 });
 
-gulp.task('minify-and-copy-css', function() {
-    gulp.src('redactor-mentions.css')
+gulp.task('compile-and-minify-css', function() {
+    gulp.src('redactor-mentions.less')
+        .pipe(sourcemaps.init())
+        .pipe(less())
         .pipe(header(
-            '/*! <%= pkg.name %> - copied at <%= new Date() %> */\n', { pkg: pkg }
+            '/*! <%= pkg.name %> - compiled at <%= new Date() %> */\n', { pkg: pkg }
         ))
-        .pipe(gulp.dest('dist/'));
+        .pipe(gulp.dest('dist/'))
 
-    gulp.src('redactor-mentions.css')
-        .pipe(header(
-            '/*! <%= pkg.name %> - generated at <%= new Date() %> */\n', { pkg: pkg }
-        ))
         .pipe(cssmin())
         .pipe(rename({ suffix: '.min' }))
+        .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('dist/'));
 });
