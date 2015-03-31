@@ -9,13 +9,13 @@ var pkg = require('./package.json');
 gulp.task('default', ['compile-coffeescript', 'minify-and-copy-css']);
 
 gulp.task('watch', function() {
-    gulp.watch('mentions.coffee', ['compile-coffeescript']);
-    gulp.watch('mentions.css', ['minify-and-copy-css']);
+    gulp.watch('redactor-mentions.coffee', ['compile-coffeescript']);
+    gulp.watch('redactor-mentions.css', ['minify-and-copy-css']);
 });
 
 gulp.task('compile-coffeescript', function() {
-    gulp.src('mentions.coffee')
-        .pipe(coffee({bare: true}))
+    gulp.src('redactor-mentions.coffee')
+        .pipe(coffee({bare: false}))
         .pipe(gulp.dest('dist'))
 
         .pipe(uglify())
@@ -24,13 +24,13 @@ gulp.task('compile-coffeescript', function() {
 });
 
 gulp.task('minify-and-copy-css', function() {
-    gulp.src('mentions.css')
+    gulp.src('redactor-mentions.css')
         .pipe(header(
             '/*! <%= pkg.name %> - copied at <%= new Date() %> */\n', { pkg: pkg }
         ))
         .pipe(gulp.dest('dist/'));
 
-    gulp.src('mentions.css')
+    gulp.src('redactor-mentions.css')
         .pipe(header(
             '/*! <%= pkg.name %> - generated at <%= new Date() %> */\n', { pkg: pkg }
         ))

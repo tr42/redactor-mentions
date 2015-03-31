@@ -18,9 +18,9 @@ I am just getting started with this so I haven't published to bower yet.  I will
 2. Add them to your markup after redactor stuff:
 
 		<link rel="stylesheet" href="js/redactor/redactor.css" />
-		<link rel="stylesheet" href="js/redactor/mentions.min.css" />
+		<link rel="stylesheet" href="js/redactor/redactor-mentions.min.css" />
 		<script src="js/redactor/redactor.js"></script>
-		<script src="js/redactor/mentions.min.js"></script>
+		<script src="js/redactor/redactor-mentions.min.js"></script>
 
 3. Add the mention plugins to your initialization:
 
