@@ -50,14 +50,18 @@
           container: range.startContainer
         };
       },
-      loadUsers: once(function(url) {
+      loadUsers: once(function(url, formatUserListItem) {
         return $.getJSON(url, function(data) {
           var i, j, len, results, user;
           users = data;
           results = [];
           for (i = j = 0, len = data.length; j < len; i = ++j) {
             user = data[i];
-            user.$element = $("<li class=\"user\">\n    <img src=\"" + user.icon + "\" />" + user.username + "  (" + user.name + ")\n</li>");
+            if (formatUserListItem) {
+              user.$element = $('<li class="user">' + formatUserListItem(user) + '</li>');
+            } else {
+              user.$element = $("<li class=\"user\">\n    <img src=\"" + user.icon + "\" />" + user.username + "  (" + user.name + ")\n</li>");
+            }
             results.push(user.$element[0].user = user);
           }
           return results;
@@ -109,7 +113,7 @@
         this.mentions.selected = null;
         this.mentions.$userSelect = null;
         this.mentions.validateOptions();
-        utils.loadUsers(this.opts.mentions.url);
+        utils.loadUsers(this.opts.mentions.url, this.opts.mentions.formatUserListItem);
         this.mentions.setupUserSelect();
         return this.mentions.setupEditor();
       },
@@ -254,12 +258,15 @@
         return $elements.eq(this.mentions.selected).addClass('selected');
       },
       chooseUser: function() {
-        var mention, prefix, user;
+        var $mention, prefix, user;
         user = this.mentions.userFromSelected();
-        mention = this.mentions.getCurrentMention();
         prefix = this.opts.mentions.urlPrefix || '/user/';
-        mention.attr("href", prefix + user.username);
-        return mention.text("@" + user.username);
+        $mention = this.mentions.getCurrentMention();
+        $mention.attr("href", prefix + user.username);
+        $mention.text("@" + user.username);
+        if (this.opts.mentions.alterUserLink) {
+          return this.opts.mentions.alterUserLink($mention, user);
+        }
       },
       userFromSelected: function() {
         return this.mentions.$userSelect.children('li')[this.mentions.selected].user;

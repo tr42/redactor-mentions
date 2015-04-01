@@ -42,20 +42,24 @@ $.extend utils, do ->
         offset: range.startOffset
         container: range.startContainer
 
-    loadUsers: once (url) ->
+    loadUsers: once (url, formatUserListItem) ->
         # async call to get user data and assign it into module global
         $.getJSON url, (data) ->
             users = data
 
             for user, i in data
                 # create actual dom node for userSelect
-                user.$element = $ """
-                    <li class="user">
-                        <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })
-                    </li>"""
+                if formatUserListItem
+                    user.$element = $ '<li class="user">' + formatUserListItem(user) + '</li>'
+                else
+                    user.$element = $ """
+                        <li class="user">
+                            <img src="#{ user.icon }" />#{ user.username }  (#{ user.name })
+                        </li>"""
 
                 # put a pointer back to user object
                 user.$element[0].user = user
+        
 
     filterTest: (user, filter_string) ->
         # test if user passes through the filter given by filter_string
@@ -125,7 +129,7 @@ plugins.mentions = ->
        this.mentions.$userSelect = null   # user select element
 
        this.mentions.validateOptions()
-       utils.loadUsers(this.opts.mentions.url)
+       utils.loadUsers(this.opts.mentions.url, this.opts.mentions.formatUserListItem)
        this.mentions.setupUserSelect()
        this.mentions.setupEditor()
 
@@ -193,7 +197,7 @@ plugins.mentions = ->
                when 9, 13  # tab, return
                    e.preventDefault()
 
-                   # work around to prevent tabs being inser
+                   # work around to prevent tabs being inserted
                    tabFocus = this.opts.tabFocus
                    this.opts.tabFocus = false
 
@@ -284,10 +288,12 @@ plugins.mentions = ->
 
    chooseUser: ->
        user = this.mentions.userFromSelected()
-       mention = this.mentions.getCurrentMention()
        prefix = this.opts.mentions.urlPrefix or '/user/'
-       mention.attr "href", prefix + user.username
-       mention.text "@#{ user.username }"
+       $mention = this.mentions.getCurrentMention()
+       $mention.attr "href", prefix + user.username
+       $mention.text "@#{ user.username }"
+       if this.opts.mentions.alterUserLink
+           this.opts.mentions.alterUserLink $mention, user
 
    userFromSelected: ->
        this.mentions.$userSelect.children('li')[this.mentions.selected].user

@@ -7,7 +7,11 @@
     "Farhan Ahmad <farhan@thebitguru.com>"
   ],
   "description": "Mentions plugin for redactor editor.",
-  "keywords": [ "redactor", "editor", "mentions" ],
+  "keywords": [
+    "redactor",
+    "editor",
+    "mentions"
+  ],
   "license": "MIT",
   "ignore": [
     "**/.*",
