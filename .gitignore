@@ -13,3 +13,6 @@ __MACOSX
 *~
 Thumbs.db
 desktop.ini
+
+node_modules/*
+bower_components/*
